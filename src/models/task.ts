@@ -1,28 +1,29 @@
-export type TaskPriority = 'low' | 'medium' | 'high'
-export type TaskStatus = 'todo' | 'in-progress' | 'completed'
+import { z } from 'zod'
 
-export interface Task {
-  id: string
-  organizationId: string
-  title: string
-  description?: string
-  dueDate?: string
-  priority?: TaskPriority
-  status: TaskStatus
-  tags?: string[]
-}
-
-export const EDITABLE_TASK_FIELDS = ['title', 'description', 'dueDate', 'priority', 'status', 'tags'] as const
+export const taskSchema = z
+  .object({
+    id: z.string().uuid(),
+    organizationId: z.string().uuid(),
+    title: z.string().max(100),
+    description: z.string().max(1000).optional(),
+    dueDate: z.string().datetime({ offset: true }).optional(),
+    priority: z.enum(['low', 'medium', 'high']).optional(),
+    status: z.enum(['todo', 'in-progress', 'completed']),
+    tags: z.array(z.string().max(50)).optional()
+  })
+  .strict()
+export type Task = z.infer<typeof taskSchema>
 
 export type GetTaskParams = Pick<Task, 'organizationId' | 'id'>
-
 export type GetTasksParams = Pick<Task, 'organizationId'>
 
-// organizationId comes from the route, not the body
-export type CreateTaskRequest = Omit<Task, 'organizationId'>
+export const createTaskRequestSchema = taskSchema.omit({ organizationId: true })
+export type CreateTaskRequest = z.infer<typeof createTaskRequestSchema>
 
-export type UpdateTaskRequest = Partial<Pick<Task, (typeof EDITABLE_TASK_FIELDS)[number]>>
+export const updateTaskRequestSchema = taskSchema.omit({ id: true, organizationId: true }).partial()
+export type UpdateTaskRequest = z.infer<typeof updateTaskRequestSchema>
 
 export type DeleteTaskRequest = Pick<Task, 'organizationId' | 'id'>
 
-export type BulkDeleteTasksRequest = string[]
+export const bulkDeleteTasksRequestSchema = z.array(taskSchema.shape.id)
+export type BulkDeleteTasksRequest = z.infer<typeof bulkDeleteTasksRequestSchema>

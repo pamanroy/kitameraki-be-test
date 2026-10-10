@@ -1,14 +1,14 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
 import { getTasksContainer } from '~/cosmos'
 import {
-  BulkDeleteTasksRequest,
-  CreateTaskRequest,
+  bulkDeleteTasksRequestSchema,
+  createTaskRequestSchema,
   DeleteTaskRequest,
-  EDITABLE_TASK_FIELDS,
   GetTaskParams,
   GetTasksParams,
-  UpdateTaskRequest
+  updateTaskRequestSchema
 } from '~/models/task'
+import { parseBody } from '~/validation'
 
 export async function GetTask(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   context.log(`Http function processed request for url "${request.url}"`)
@@ -34,23 +34,20 @@ export async function GetTasks(request: HttpRequest, context: InvocationContext)
 
 export async function InsertTask(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   const { organizationId } = request.params as GetTasksParams
-  const body = { ...((await request.json()) as CreateTaskRequest), organizationId }
+  const parsed = await parseBody(request, createTaskRequestSchema)
+  if ('error' in parsed) return parsed.error
 
-  const createdTask = await getTasksContainer().items.create(body)
+  const createdTask = await getTasksContainer().items.create({ ...parsed.data, organizationId })
 
   return { jsonBody: createdTask.resource, status: 200 }
 }
 
 export async function UpdateTask(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const body = (await request.json()) as UpdateTaskRequest
   const { id, organizationId } = request.params as GetTaskParams
+  const parsed = await parseBody(request, updateTaskRequestSchema)
+  if ('error' in parsed) return parsed.error
 
-  const forbiddenFields = Object.keys(body).filter(key => !(EDITABLE_TASK_FIELDS as readonly string[]).includes(key))
-  if (forbiddenFields.length > 0) {
-    return { status: 400, jsonBody: { error: `Fields cannot be updated: ${forbiddenFields.join(', ')}` } }
-  }
-
-  const patchRequests = Object.entries(body).map(([key, value]) => ({
+  const patchRequests = Object.entries(parsed.data).map(([key, value]) => ({
     op: 'replace' as const,
     path: `/${key}`,
     value
@@ -71,11 +68,12 @@ export async function DeleteTask(request: HttpRequest, context: InvocationContex
 
 export async function BulkDeleteTasks(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   context.log(`Http function processed request for url "${request.url}"`)
-  const body = (await request.json()) as BulkDeleteTasksRequest
   const { organizationId } = request.params as GetTasksParams
+  const parsed = await parseBody(request, bulkDeleteTasksRequestSchema)
+  if ('error' in parsed) return parsed.error
 
   const container = getTasksContainer()
-  await Promise.all(body.map(id => container.item(id, organizationId).delete()))
+  await Promise.all(parsed.data.map(id => container.item(id, organizationId).delete()))
 
   return { status: 200 }
 }
