@@ -1,5 +1,6 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
+import { app, HttpHandler, HttpMethod, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
 import { getTasksContainer } from '~/cosmos'
+import { withErrorHandling } from '~/errors'
 import {
   bulkDeleteTasksRequestSchema,
   createTaskRequestSchema,
@@ -15,6 +16,8 @@ export async function GetTask(request: HttpRequest, context: InvocationContext):
 
   const { id, organizationId } = request.params as GetTaskParams
   const task = await getTasksContainer().item(id, organizationId).read()
+  if (!task.resource) return { status: 404, jsonBody: { error: 'Task not found' } }
+
   return { jsonBody: task.resource, status: 200 }
 }
 
@@ -39,7 +42,7 @@ export async function InsertTask(request: HttpRequest, context: InvocationContex
 
   const createdTask = await getTasksContainer().items.create({ ...parsed.data, organizationId })
 
-  return { jsonBody: createdTask.resource, status: 200 }
+  return { jsonBody: createdTask.resource, status: 201 }
 }
 
 export async function UpdateTask(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
@@ -63,7 +66,7 @@ export async function DeleteTask(request: HttpRequest, context: InvocationContex
   const { id, organizationId } = request.params as DeleteTaskRequest
   await getTasksContainer().item(id, organizationId).delete()
 
-  return { status: 200 }
+  return { status: 204 }
 }
 
 export async function BulkDeleteTasks(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
@@ -73,49 +76,24 @@ export async function BulkDeleteTasks(request: HttpRequest, context: InvocationC
   if ('error' in parsed) return parsed.error
 
   const container = getTasksContainer()
-  await Promise.all(parsed.data.map(id => container.item(id, organizationId).delete()))
+  const results = await Promise.allSettled(parsed.data.map(id => container.item(id, organizationId).delete()))
 
-  return { status: 200 }
+  const failure = results.find(result => result.status === 'rejected' && result.reason?.code !== 404)
+  if (failure) throw (failure as PromiseRejectedResult).reason
+
+  return { status: 204 }
 }
 
-app.http('GetTask', {
-  methods: ['GET'],
-  route: 'organizations/{organizationId}/tasks/{id}',
-  authLevel: 'anonymous',
-  handler: GetTask
-})
+const TASKS_ROUTE = 'organizations/{organizationId}/tasks'
+const TASK_ROUTE = `${TASKS_ROUTE}/{id}`
 
-app.http('GetTasks', {
-  methods: ['GET'],
-  route: 'organizations/{organizationId}/tasks',
-  authLevel: 'anonymous',
-  handler: GetTasks
-})
+function register(method: HttpMethod, route: string, handler: HttpHandler) {
+  app.http(handler.name, { methods: [method], route, authLevel: 'anonymous', handler: withErrorHandling(handler) })
+}
 
-app.http('InsertTask', {
-  methods: ['POST'],
-  route: 'organizations/{organizationId}/tasks',
-  authLevel: 'anonymous',
-  handler: InsertTask
-})
-
-app.http('UpdateTask', {
-  methods: ['PATCH'],
-  route: 'organizations/{organizationId}/tasks/{id}',
-  authLevel: 'anonymous',
-  handler: UpdateTask
-})
-
-app.http('DeleteTask', {
-  methods: ['DELETE'],
-  route: 'organizations/{organizationId}/tasks/{id}',
-  authLevel: 'anonymous',
-  handler: DeleteTask
-})
-
-app.http('BulkDeleteTasks', {
-  methods: ['DELETE'],
-  route: 'organizations/{organizationId}/tasks',
-  authLevel: 'anonymous',
-  handler: BulkDeleteTasks
-})
+register('GET', TASK_ROUTE, GetTask)
+register('GET', TASKS_ROUTE, GetTasks)
+register('POST', TASKS_ROUTE, InsertTask)
+register('PATCH', TASK_ROUTE, UpdateTask)
+register('DELETE', TASK_ROUTE, DeleteTask)
+register('DELETE', TASKS_ROUTE, BulkDeleteTasks)
