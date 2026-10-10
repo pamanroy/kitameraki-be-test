@@ -9,7 +9,10 @@ export async function GetTasks(request: HttpRequest, context: InvocationContext)
   const task = await client
     .database('TaskApp')
     .container('Tasks')
-    .items.query(`SELECT * FROM c WHERE c.organizationId = '${organizationId}'`)
+    .items.query({
+      query: 'SELECT * FROM c WHERE c.organizationId = @organizationId',
+      parameters: [{ name: '@organizationId', value: organizationId }]
+    })
     .fetchNext()
 
   return { jsonBody: task.resources, status: 200 }
