@@ -6,7 +6,7 @@ export async function BulkDeleteTasks(request: HttpRequest, context: InvocationC
   const body = (await request.json()) as string[]
   const organizationId = request.params.organizationId
 
-  const client = new CosmosClient('this is a connection string')
+  const client = new CosmosClient(process.env.COSMOS_CONNECTION_STRING)
   const container = client.database('TaskApp').container('Tasks')
   await Promise.all(body.map(id => container.item(id, organizationId).delete()))
 

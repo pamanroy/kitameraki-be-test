@@ -5,7 +5,7 @@ export async function InsertTask(request: HttpRequest, context: InvocationContex
   const organizationId = request.params.organizationId
   const body = { ...((await request.json()) as object), organizationId }
 
-  const client = new CosmosClient('this is a connection string')
+  const client = new CosmosClient(process.env.COSMOS_CONNECTION_STRING)
   const createdTask = await client.database('TaskApp').container('Tasks').items.create(body)
 
   return { jsonBody: createdTask.resource, status: 200 }

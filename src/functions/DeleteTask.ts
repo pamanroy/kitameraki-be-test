@@ -7,7 +7,7 @@ export async function DeleteTask(request: HttpRequest, context: InvocationContex
   const taskId = request.params.id
   const organizationId = request.params.organizationId
 
-  const client = new CosmosClient('this is a connection string')
+  const client = new CosmosClient(process.env.COSMOS_CONNECTION_STRING)
   await client.database('TaskApp').container('Tasks').item(taskId, organizationId).delete()
 
   return { status: 200 }

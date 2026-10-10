@@ -16,7 +16,7 @@ export async function UpdateTask(request: HttpRequest, context: InvocationContex
     })
   }
 
-  const client = new CosmosClient('this is a connection string')
+  const client = new CosmosClient(process.env.COSMOS_CONNECTION_STRING)
   const createdTask = await client.database('TaskApp').container('Tasks').item(taskId, organizationId).patch(patchRequests)
 
   return { jsonBody: createdTask.resource, status: 200 }

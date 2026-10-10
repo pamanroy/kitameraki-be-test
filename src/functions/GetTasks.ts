@@ -5,7 +5,7 @@ export async function GetTasks(request: HttpRequest, context: InvocationContext)
   context.log(`Http function processed request for url "${request.url}"`)
   const organizationId = request.params.organizationId
 
-  const client = new CosmosClient('this is a connection string')
+  const client = new CosmosClient(process.env.COSMOS_CONNECTION_STRING)
   const task = await client
     .database('TaskApp')
     .container('Tasks')
