@@ -1,12 +1,11 @@
-import { CosmosClient } from '@azure/cosmos'
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
+import { getTasksContainer } from '~/cosmos'
 
 export async function InsertTask(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const organizationId = request.params.organizationId
+  const { organizationId } = request.params
   const body = { ...((await request.json()) as object), organizationId }
 
-  const client = new CosmosClient(process.env.COSMOS_CONNECTION_STRING)
-  const createdTask = await client.database('TaskApp').container('Tasks').items.create(body)
+  const createdTask = await getTasksContainer().items.create(body)
 
   return { jsonBody: createdTask.resource, status: 200 }
 }

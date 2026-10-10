@@ -1,14 +1,12 @@
-import { CosmosClient } from '@azure/cosmos'
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
+import { getTasksContainer } from '~/cosmos'
 
 export async function DeleteTask(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   context.log(`Http function processed request for url "${request.url}"`)
 
-  const taskId = request.params.id
-  const organizationId = request.params.organizationId
+  const { id, organizationId } = request.params
 
-  const client = new CosmosClient(process.env.COSMOS_CONNECTION_STRING)
-  await client.database('TaskApp').container('Tasks').item(taskId, organizationId).delete()
+  await getTasksContainer().item(id, organizationId).delete()
 
   return { status: 200 }
 }

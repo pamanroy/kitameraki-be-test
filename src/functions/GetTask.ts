@@ -1,14 +1,12 @@
-import { CosmosClient } from '@azure/cosmos'
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
+import { getTasksContainer } from '~/cosmos'
 
 export async function GetTask(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   context.log(`Http function processed request for url "${request.url}"`)
 
-  const taskId = request.params.id
-  const organizationId = request.params.organizationId
+  const { id, organizationId } = request.params
 
-  const client = new CosmosClient(process.env.COSMOS_CONNECTION_STRING)
-  const task = await client.database('TaskApp').container('Tasks').item(taskId, organizationId).read()
+  const task = await getTasksContainer().item(id, organizationId).read()
 
   return { jsonBody: task.resource, status: 200 }
 }

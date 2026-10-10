@@ -1,10 +1,9 @@
-import { CosmosClient } from '@azure/cosmos'
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
+import { getTasksContainer } from '~/cosmos'
 
 export async function UpdateTask(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   const body = (await request.json()) as object
-  const taskId = request.params.id
-  const organizationId = request.params.organizationId
+  const { id, organizationId } = request.params
 
   let patchRequests = []
 
@@ -16,8 +15,7 @@ export async function UpdateTask(request: HttpRequest, context: InvocationContex
     })
   }
 
-  const client = new CosmosClient(process.env.COSMOS_CONNECTION_STRING)
-  const createdTask = await client.database('TaskApp').container('Tasks').item(taskId, organizationId).patch(patchRequests)
+  const createdTask = await getTasksContainer().item(id, organizationId).patch(patchRequests)
 
   return { jsonBody: createdTask.resource, status: 200 }
 }
