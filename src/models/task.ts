@@ -1,17 +1,15 @@
 import { z } from 'zod'
 
-export const taskSchema = z
-  .object({
-    id: z.string().uuid(),
-    organizationId: z.string().uuid(),
-    title: z.string().max(100),
-    description: z.string().max(1000).optional(),
-    dueDate: z.string().datetime({ offset: true }).optional(),
-    priority: z.enum(['low', 'medium', 'high']).optional(),
-    status: z.enum(['todo', 'in-progress', 'completed']),
-    tags: z.array(z.string().max(50)).optional()
-  })
-  .strict()
+export const taskSchema = z.object({
+  id: z.string().uuid(),
+  organizationId: z.string().uuid(),
+  title: z.string().max(100),
+  description: z.string().max(1000).optional(),
+  dueDate: z.string().datetime({ offset: true }).optional(),
+  priority: z.enum(['low', 'medium', 'high']).optional(),
+  status: z.enum(['todo', 'in-progress', 'completed']),
+  tags: z.array(z.string().max(50)).optional()
+})
 export type Task = z.infer<typeof taskSchema>
 
 // use zod pick instead of ts pick to validate the id is uuid

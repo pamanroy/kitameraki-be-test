@@ -55,6 +55,24 @@ For development, run `npm run watch` in a second terminal. It recompiles on chan
 | `npm run build` | Compile with `tsc` and resolve `~` path aliases |
 | `npm run watch` | Rebuild on change                               |
 | `npm run clean` | Remove `dist`                                   |
+| `npm test`      | Run the integration tests (see below)           |
+
+## Tests
+
+`npm test` runs integration tests that call the real HTTP endpoints, so the API and Cosmos must be running first.
+
+1. Start the Cosmos DB Emulator and set up `local.settings.json` as described in [Run locally](#run-locally).
+2. In one terminal, run `npm start`.
+3. In another terminal, run `npm test`.
+
+Each run uses a random `organizationId` and deletes the tasks it created, so it does not touch other data. To test an API that is not on `http://localhost:7071/api`, set `API_URL`:
+
+```powershell
+$env:API_URL = "https://example.com/api"
+npm test
+```
+
+If the API is not reachable, the run stops immediately with a message saying so.
 
 ## API
 
