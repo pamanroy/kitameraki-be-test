@@ -20,6 +20,7 @@ winget install Microsoft.Azure.FunctionsCoreTools
 2. In the emulator's Data Explorer (`https://localhost:8081/_explorer/index.html`), create:
    - database `TaskApp`
    - container `Tasks` with partition key `/organizationId`
+   - container `FormSettings` with partition key `/organizationId`
 3. Create `local.settings.json` in the project root. It is gitignored.
 
    ```json

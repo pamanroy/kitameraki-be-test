@@ -1,5 +1,5 @@
 import { app, HttpHandler, HttpMethod, HttpRequest, HttpResponseInit } from '@azure/functions'
-import { getTasksContainer } from '~/cosmos'
+import { tasksContainer } from '~/cosmos'
 import { withErrorHandling } from '~/errors'
 import {
   bulkDeleteTasksRequestSchema,
@@ -16,7 +16,7 @@ export async function GetTask(request: HttpRequest): Promise<HttpResponseInit> {
   const params = parseParams(request, getTaskParamsSchema)
   if ('error' in params) return params.error
   const { id, organizationId } = params.data
-  const task = await getTasksContainer().item(id, organizationId).read()
+  const task = await tasksContainer.item(id, organizationId).read()
   if (!task.resource) return { status: 404, jsonBody: { error: 'Task not found' } }
 
   return { jsonBody: task.resource, status: 200 }
@@ -30,7 +30,6 @@ export async function GetTasks(request: HttpRequest): Promise<HttpResponseInit> 
   if ('error' in parsed) return parsed.error
 
   const { page, pageSize, status, priority, tag, q } = parsed.data
-  const container = getTasksContainer()
   const conditions = ['c.organizationId = @organizationId']
   const parameters = [{ name: '@organizationId', value: organizationId }]
   if (status) {
@@ -52,13 +51,13 @@ export async function GetTasks(request: HttpRequest): Promise<HttpResponseInit> 
   const where = conditions.join(' AND ')
 
   const [items, count] = await Promise.all([
-    container.items
+    tasksContainer.items
       .query({
         query: `SELECT * FROM c WHERE ${where} ORDER BY c._ts DESC OFFSET @offset LIMIT @limit`,
         parameters: [...parameters, { name: '@offset', value: (page - 1) * pageSize }, { name: '@limit', value: pageSize }]
       })
       .fetchAll(),
-    container.items
+    tasksContainer.items
       .query<number>({ query: `SELECT VALUE COUNT(1) FROM c WHERE ${where}`, parameters })
       .fetchAll()
   ])
@@ -73,7 +72,7 @@ export async function InsertTask(request: HttpRequest): Promise<HttpResponseInit
   const parsed = await parseBody(request, createTaskRequestSchema)
   if ('error' in parsed) return parsed.error
 
-  const createdTask = await getTasksContainer().items.create({ ...parsed.data, organizationId })
+  const createdTask = await tasksContainer.items.create({ ...parsed.data, organizationId })
 
   return { jsonBody: createdTask.resource, status: 201 }
 }
@@ -90,7 +89,7 @@ export async function UpdateTask(request: HttpRequest): Promise<HttpResponseInit
     path: `/${key}`,
     value
   }))
-  const updatedTask = await getTasksContainer().item(id, organizationId).patch(patchRequests)
+  const updatedTask = await tasksContainer.item(id, organizationId).patch(patchRequests)
 
   return { jsonBody: updatedTask.resource, status: 200 }
 }
@@ -99,7 +98,7 @@ export async function DeleteTask(request: HttpRequest): Promise<HttpResponseInit
   const params = parseParams(request, deleteTaskRequestSchema)
   if ('error' in params) return params.error
   const { id, organizationId } = params.data
-  await getTasksContainer().item(id, organizationId).delete()
+  await tasksContainer.item(id, organizationId).delete()
 
   return { status: 204 }
 }
@@ -111,8 +110,7 @@ export async function BulkDeleteTasks(request: HttpRequest): Promise<HttpRespons
   const parsed = await parseBody(request, bulkDeleteTasksRequestSchema)
   if ('error' in parsed) return parsed.error
 
-  const container = getTasksContainer()
-  const results = await Promise.allSettled(parsed.data.map(id => container.item(id, organizationId).delete()))
+  const results = await Promise.allSettled(parsed.data.map(id => tasksContainer.item(id, organizationId).delete()))
 
   const failure = results.find(result => result.status === 'rejected' && result.reason?.code !== 404)
   if (failure) throw (failure as PromiseRejectedResult).reason
