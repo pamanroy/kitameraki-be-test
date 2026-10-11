@@ -9,8 +9,6 @@ export function withErrorHandling(handler: HttpHandler): HttpHandler {
       switch ((error as { code?: unknown }).code) {
         case 404:
           return { status: 404, jsonBody: { error: 'Task not found' } }
-        case 409:
-          return { status: 409, jsonBody: { error: 'Task already exists' } }
         default:
           throw error
       }

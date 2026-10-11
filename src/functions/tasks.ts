@@ -103,7 +103,7 @@ export async function UpdateTask(request: HttpRequest): Promise<HttpResponseInit
   }
 
   const patchRequests = Object.entries(changes).map(([key, value]) => ({
-    op: 'replace' as const,
+    op: 'set' as const,
     path: `/${key}`,
     value
   }))
