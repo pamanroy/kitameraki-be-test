@@ -4,18 +4,20 @@ import { withErrorHandling } from '~/errors'
 import {
   bulkDeleteTasksRequestSchema,
   createTaskRequestSchema,
-  DeleteTaskRequest,
-  GetTaskParams,
-  GetTasksParams,
+  deleteTaskRequestSchema,
+  getTaskParamsSchema,
+  getTasksParamsSchema,
   getTasksQuerySchema,
   updateTaskRequestSchema
 } from '~/models/task'
-import { parseBody, parseQuery } from '~/validation'
+import { parseBody, parseParams, parseQuery } from '~/validation'
 
 export async function GetTask(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   context.log(`Http function processed request for url "${request.url}"`)
 
-  const { id, organizationId } = request.params as GetTaskParams
+  const params = parseParams(request, getTaskParamsSchema)
+  if ('error' in params) return params.error
+  const { id, organizationId } = params.data
   const task = await getTasksContainer().item(id, organizationId).read()
   if (!task.resource) return { status: 404, jsonBody: { error: 'Task not found' } }
 
@@ -25,7 +27,9 @@ export async function GetTask(request: HttpRequest, context: InvocationContext):
 export async function GetTasks(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   context.log(`Http function processed request for url "${request.url}"`)
 
-  const { organizationId } = request.params as GetTasksParams
+  const params = parseParams(request, getTasksParamsSchema)
+  if ('error' in params) return params.error
+  const { organizationId } = params.data
   const parsed = parseQuery(request, getTasksQuerySchema)
   if ('error' in parsed) return parsed.error
 
@@ -67,7 +71,9 @@ export async function GetTasks(request: HttpRequest, context: InvocationContext)
 }
 
 export async function InsertTask(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const { organizationId } = request.params as GetTasksParams
+  const params = parseParams(request, getTasksParamsSchema)
+  if ('error' in params) return params.error
+  const { organizationId } = params.data
   const parsed = await parseBody(request, createTaskRequestSchema)
   if ('error' in parsed) return parsed.error
 
@@ -77,7 +83,9 @@ export async function InsertTask(request: HttpRequest, context: InvocationContex
 }
 
 export async function UpdateTask(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const { id, organizationId } = request.params as GetTaskParams
+  const params = parseParams(request, getTaskParamsSchema)
+  if ('error' in params) return params.error
+  const { id, organizationId } = params.data
   const parsed = await parseBody(request, updateTaskRequestSchema)
   if ('error' in parsed) return parsed.error
 
@@ -94,7 +102,9 @@ export async function UpdateTask(request: HttpRequest, context: InvocationContex
 export async function DeleteTask(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   context.log(`Http function processed request for url "${request.url}"`)
 
-  const { id, organizationId } = request.params as DeleteTaskRequest
+  const params = parseParams(request, deleteTaskRequestSchema)
+  if ('error' in params) return params.error
+  const { id, organizationId } = params.data
   await getTasksContainer().item(id, organizationId).delete()
 
   return { status: 204 }
@@ -102,7 +112,9 @@ export async function DeleteTask(request: HttpRequest, context: InvocationContex
 
 export async function BulkDeleteTasks(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   context.log(`Http function processed request for url "${request.url}"`)
-  const { organizationId } = request.params as GetTasksParams
+  const params = parseParams(request, getTasksParamsSchema)
+  if ('error' in params) return params.error
+  const { organizationId } = params.data
   const parsed = await parseBody(request, bulkDeleteTasksRequestSchema)
   if ('error' in parsed) return parsed.error
 
