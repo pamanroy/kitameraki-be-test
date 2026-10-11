@@ -4,7 +4,7 @@
   "description": "",
   "scripts": {
     "build": "tsc && tsc-alias",
-    "watch": "tsc -w",
+    "watch": "concurrently -n tsc,alias \"tsc -w --preserveWatchOutput\" \"tsc-alias -w\"",
     "clean": "rimraf dist",
     "prestart": "npm run clean && npm run build",
     "start": "func start",
@@ -17,6 +17,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.x",
+    "concurrently": "^10.0.6",
     "oxfmt": "^0.72.0",
     "rimraf": "^5.0.0",
     "tsc-alias": "^1.9.7",
