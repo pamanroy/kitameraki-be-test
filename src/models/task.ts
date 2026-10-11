@@ -17,6 +17,16 @@ export type Task = z.infer<typeof taskSchema>
 export type GetTaskParams = Pick<Task, 'organizationId' | 'id'>
 export type GetTasksParams = Pick<Task, 'organizationId'>
 
+export const getTasksQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(20),
+  status: taskSchema.shape.status.optional(),
+  priority: z.enum(['low', 'medium', 'high']).optional(),
+  tag: z.string().max(50).optional(),
+  q: z.string().trim().min(1).max(100).optional()
+})
+export type GetTasksQuery = z.infer<typeof getTasksQuerySchema>
+
 export const createTaskRequestSchema = taskSchema.omit({ organizationId: true })
 export type CreateTaskRequest = z.infer<typeof createTaskRequestSchema>
 

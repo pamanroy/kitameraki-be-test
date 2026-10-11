@@ -7,9 +7,10 @@ import {
   DeleteTaskRequest,
   GetTaskParams,
   GetTasksParams,
+  getTasksQuerySchema,
   updateTaskRequestSchema
 } from '~/models/task'
-import { parseBody } from '~/validation'
+import { parseBody, parseQuery } from '~/validation'
 
 export async function GetTask(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   context.log(`Http function processed request for url "${request.url}"`)
@@ -25,14 +26,44 @@ export async function GetTasks(request: HttpRequest, context: InvocationContext)
   context.log(`Http function processed request for url "${request.url}"`)
 
   const { organizationId } = request.params as GetTasksParams
-  const task = await getTasksContainer()
-    .items.query({
-      query: 'SELECT * FROM c WHERE c.organizationId = @organizationId',
-      parameters: [{ name: '@organizationId', value: organizationId }]
-    })
-    .fetchNext()
+  const parsed = parseQuery(request, getTasksQuerySchema)
+  if ('error' in parsed) return parsed.error
 
-  return { jsonBody: task.resources, status: 200 }
+  const { page, pageSize, status, priority, tag, q } = parsed.data
+  const container = getTasksContainer()
+  const conditions = ['c.organizationId = @organizationId']
+  const parameters = [{ name: '@organizationId', value: organizationId }]
+  if (status) {
+    conditions.push('c.status = @status')
+    parameters.push({ name: '@status', value: status })
+  }
+  if (priority) {
+    conditions.push('c.priority = @priority')
+    parameters.push({ name: '@priority', value: priority })
+  }
+  if (tag) {
+    conditions.push('ARRAY_CONTAINS(c.tags, @tag)')
+    parameters.push({ name: '@tag', value: tag })
+  }
+  if (q) {
+    conditions.push('(CONTAINS(c.title, @q, true) OR CONTAINS(c.description, @q, true))')
+    parameters.push({ name: '@q', value: q })
+  }
+  const where = conditions.join(' AND ')
+
+  const [items, count] = await Promise.all([
+    container.items
+      .query({
+        query: `SELECT * FROM c WHERE ${where} ORDER BY c._ts DESC OFFSET @offset LIMIT @limit`,
+        parameters: [...parameters, { name: '@offset', value: (page - 1) * pageSize }, { name: '@limit', value: pageSize }]
+      })
+      .fetchAll(),
+    container.items
+      .query<number>({ query: `SELECT VALUE COUNT(1) FROM c WHERE ${where}`, parameters })
+      .fetchAll()
+  ])
+
+  return { jsonBody: { items: items.resources, page, pageSize, total: count.resources[0] }, status: 200 }
 }
 
 export async function InsertTask(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
