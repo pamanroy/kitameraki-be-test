@@ -208,6 +208,16 @@ describe('listing', () => {
     expect(titles(await listPage('tag=nope'))).toEqual([])
   })
 
+  it('requires all tags when several are given', async () => {
+    expect(titles(await listPage('tag=bug,login'))).toEqual(['Fix Login bug'])
+    expect(titles(await listPage('tag=bug,docs'))).toEqual([])
+  })
+
+  it('matches tags case-insensitively', async () => {
+    expect(titles(await listPage('tag=BUG'))).toEqual(['Fix Login bug', 'Ship release'])
+    expect(titles(await listPage('tag=Bug,LOGIN'))).toEqual(['Fix Login bug'])
+  })
+
   it('combines filters and reports the filtered total', async () => {
     const page = await listPage('status=todo&priority=high&tag=bug')
     expect(titles(page)).toEqual(['Fix Login bug'])

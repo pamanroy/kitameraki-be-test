@@ -100,7 +100,7 @@ A task has a server-generated `id` (uuid), `title` (max 100), `status` (`todo`, 
 | `pageSize` | 20      | Items per page, 1 to 100                            |
 | `status`   |         | Filter by status                                    |
 | `priority` |         | Filter by priority                                  |
-| `tag`      |         | Filter to tasks containing this exact tag           |
+| `tag`      |         | Comma-separated tags, up to 10; tasks must contain all of them, case-insensitive (e.g. `tag=bug,login`) |
 | `q`        |         | Case-insensitive substring search on title and description |
 
 Response:

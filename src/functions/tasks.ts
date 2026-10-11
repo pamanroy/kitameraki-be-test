@@ -44,10 +44,10 @@ export async function GetTasks(request: HttpRequest): Promise<HttpResponseInit> 
     conditions.push('c.priority = @priority')
     parameters.push({ name: '@priority', value: priority })
   }
-  if (tag) {
-    conditions.push('ARRAY_CONTAINS(c.tags, @tag)')
-    parameters.push({ name: '@tag', value: tag })
-  }
+  tag?.forEach((value, index) => {
+    conditions.push(`EXISTS(SELECT VALUE t FROM t IN c.tags WHERE LOWER(t) = @tag${index})`)
+    parameters.push({ name: `@tag${index}`, value: value.toLowerCase() })
+  })
   if (q) {
     conditions.push('(CONTAINS(c.title, @q, true) OR CONTAINS(c.description, @q, true))')
     parameters.push({ name: '@q', value: q })

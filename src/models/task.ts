@@ -26,7 +26,11 @@ export const getTasksQuerySchema = z.object({
   pageSize: z.coerce.number().int().min(1).max(100).default(20),
   status: taskSchema.shape.status.optional(),
   priority: z.enum(['low', 'medium', 'high']).optional(),
-  tag: z.string().max(50).optional(),
+  tag: z
+    .string()
+    .transform(value => value.split(',').map(tag => tag.trim()).filter(Boolean))
+    .pipe(z.array(z.string().max(50)).max(10))
+    .optional(),
   q: z.string().trim().min(1).max(100).optional()
 })
 export type GetTasksQuery = z.infer<typeof getTasksQuerySchema>
