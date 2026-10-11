@@ -44,6 +44,7 @@ beforeAll(async () => {
 afterAll(async () => {
   const { body } = await call(`${tasksUrl}?pageSize=100`)
   if (body.items.length) await call(tasksUrl, { method: 'DELETE', body: body.items.map((item: { id: string }) => item.id) })
+  await call(settingsUrl, { method: 'DELETE' })
 })
 
 describe('custom field values', () => {

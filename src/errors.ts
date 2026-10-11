@@ -8,7 +8,7 @@ export function withErrorHandling(handler: HttpHandler): HttpHandler {
     } catch (error) {
       switch ((error as { code?: unknown }).code) {
         case 404:
-          return { status: 404, jsonBody: { error: 'Task not found' } }
+          return { status: 404, jsonBody: { error: 'Resource not found' } }
         default:
           throw error
       }

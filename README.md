@@ -132,6 +132,7 @@ The form layout is stored once per organization and applies to all its tasks.
 | ------ | --------------------------------------------- | ----------------------------------------------- |
 | GET    | `/organizations/{organizationId}/form-settings` | Get the settings, or the defaults if none saved |
 | PUT    | `/organizations/{organizationId}/form-settings` | Replace the settings                            |
+| DELETE | `/organizations/{organizationId}/form-settings` | Reset to the defaults                           |
 
 The body of `PUT` and the `rows` of the response are rows of 1 or 2 fields:
 
@@ -147,6 +148,7 @@ The body of `PUT` and the `rows` of the response are rows of 1 or 2 fields:
 }
 ```
 
+- If a built-in field is missing from the saved settings, `GET` appends it as its own row at the end.
 - Built-in fields (`title`, `description`, `dueDate`, `priority`, `status`, `tags`) must all be present. Only their label and position can change.
 - Custom fields have a uuid `id` and a `type` of `text`, `date`, `datetime` or `email`.
 - `label` is 1 to 50 characters. Field ids must be unique. There is no limit on the number of rows.

@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { taskSchema } from '~/models/task'
 
-const builtInFieldIdSchema = taskSchema.omit({ id: true, organizationId: true, customFields: true }).keyof()
+export const builtInFieldIdSchema = taskSchema.omit({ id: true, organizationId: true, customFields: true }).keyof()
 
 const labelSchema = z.string().trim().min(1).max(50)
 
