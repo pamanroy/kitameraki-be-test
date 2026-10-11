@@ -1,5 +1,6 @@
 import { HttpRequest, HttpResponseInit } from '@azure/functions'
 import { tasksContainer } from '~/cosmos'
+import { validateCustomFields } from '~/customFields'
 import { register } from '~/http'
 import {
   bulkDeleteTasksRequestSchema,
@@ -73,7 +74,14 @@ export async function InsertTask(request: HttpRequest): Promise<HttpResponseInit
   const parsed = await parseBody(request, createTaskRequestSchema)
   if ('error' in parsed) return parsed.error
 
-  const createdTask = await tasksContainer.items.create({ ...parsed.data, organizationId })
+  let task = parsed.data
+  if (task.customFields) {
+    const customFields = await validateCustomFields(organizationId, task.customFields)
+    if ('error' in customFields) return customFields.error
+    task = { ...task, customFields: customFields.data }
+  }
+
+  const createdTask = await tasksContainer.items.create({ ...task, organizationId })
 
   return { jsonBody: createdTask.resource, status: 201 }
 }
@@ -86,7 +94,14 @@ export async function UpdateTask(request: HttpRequest): Promise<HttpResponseInit
   const parsed = await parseBody(request, updateTaskRequestSchema)
   if ('error' in parsed) return parsed.error
 
-  const patchRequests = Object.entries(parsed.data).map(([key, value]) => ({
+  let changes = parsed.data
+  if (changes.customFields) {
+    const customFields = await validateCustomFields(organizationId, changes.customFields)
+    if ('error' in customFields) return customFields.error
+    changes = { ...changes, customFields: customFields.data }
+  }
+
+  const patchRequests = Object.entries(changes).map(([key, value]) => ({
     op: 'replace' as const,
     path: `/${key}`,
     value

@@ -83,12 +83,12 @@ Base path: `/api/organizations/{organizationId}/tasks`. `organizationId` and `id
 | ------ | ------------- | -------------------------------- |
 | GET    | `/`           | List tasks (paginated)           |
 | GET    | `/{id}`       | Get one task                     |
-| POST   | `/`           | Create a task                    |
+| POST   | `/`           | Create a task, the id is generated |
 | PATCH  | `/{id}`       | Update fields of a task          |
 | DELETE | `/{id}`       | Delete a task                    |
 | DELETE | `/`           | Bulk delete, body is an id array |
 
-A task has `id`, `title` (max 100), `status` (`todo`, `in-progress`, `completed`) and the optional `description`, `dueDate` (ISO 8601 with offset), `priority` (`low`, `medium`, `high`) and `tags`. The full shape is in [task.schema.json](task.schema.json).
+A task has a server-generated `id` (uuid), `title` (max 100), `status` (`todo`, `in-progress`, `completed`) and the optional `description`, `dueDate` (ISO 8601 in UTC, e.g. `2026-10-11T10:00:00Z`), `priority` (`low`, `medium`, `high`) and `tags`. The full shape is in [task.schema.json](task.schema.json).
 
 ### Listing tasks
 
@@ -110,6 +110,19 @@ Response:
 ```
 
 Results are ordered newest first. Pagination uses `OFFSET`/`LIMIT`, which suits page-numbered UIs but costs more on very deep pages. Switching to Cosmos continuation tokens would scale better but drops page numbers and `total`.
+
+### Custom field values
+
+Tasks can carry values for the custom fields in the form settings, in `customFields`, an object keyed by the custom field id:
+
+```json
+{ "title": "Call back", "status": "todo", "customFields": { "<field id>": "555-0100" } }
+```
+
+- Values are strings, validated on create and update against the field type: `text` any string, `email` an email address, `date` as `YYYY-MM-DD`, `datetime` as ISO 8601 in UTC (ending in `Z`). A bad value returns `400`.
+- Keys that are not custom fields in the current settings are ignored and not stored.
+- On update, `customFields` replaces the whole object, so send every value to keep.
+- Deleting a custom field from the settings leaves its stored values on existing tasks. They are still returned and are harmless.
 
 ### Form settings
 
@@ -140,4 +153,4 @@ The body of `PUT` and the `rows` of the response are rows of 1 or 2 fields:
 
 ### Errors
 
-Invalid input returns `400` with `{ "error": "...", "issues": [{ "path": "...", "message": "..." }] }`. A missing task returns `404` and a duplicate id returns `409`.
+Invalid input returns `400` with `{ "error": "...", "issues": [{ "path": "...", "message": "..." }] }`. A missing task returns `404`.

@@ -1,17 +1,17 @@
 import { HttpRequest, HttpResponseInit } from '@azure/functions'
 import { formSettingsContainer } from '~/cosmos'
+import { getFormSettings } from '~/formSettings'
 import { register } from '~/http'
-import { DEFAULT_FORM_ROWS, getFormSettingsParamsSchema, updateFormSettingsRequestSchema } from '~/models/formSettings'
+import { getFormSettingsParamsSchema, updateFormSettingsRequestSchema } from '~/models/formSettings'
 import { parseBody, parseParams } from '~/validation'
 
 export async function GetFormSettings(request: HttpRequest): Promise<HttpResponseInit> {
   const params = parseParams(request, getFormSettingsParamsSchema)
   if ('error' in params) return params.error
 
-  const { organizationId } = params.data
-  const settings = await formSettingsContainer.item(organizationId, organizationId).read()
+  const settings = await getFormSettings(params.data.organizationId)
 
-  return { jsonBody: settings.resource ?? { organizationId, rows: DEFAULT_FORM_ROWS }, status: 200 }
+  return { jsonBody: settings, status: 200 }
 }
 
 export async function UpdateFormSettings(request: HttpRequest): Promise<HttpResponseInit> {

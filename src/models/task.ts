@@ -5,10 +5,11 @@ export const taskSchema = z.object({
   organizationId: z.string().uuid(),
   title: z.string().max(100),
   description: z.string().max(1000).optional(),
-  dueDate: z.string().datetime({ offset: true }).optional(),
+  dueDate: z.string().datetime().optional(),
   priority: z.enum(['low', 'medium', 'high']).optional(),
   status: z.enum(['todo', 'in-progress', 'completed']),
-  tags: z.array(z.string().max(50)).optional()
+  tags: z.array(z.string().max(50)).optional(),
+  customFields: z.record(z.string(), z.string().max(1000)).optional()
 })
 export type Task = z.infer<typeof taskSchema>
 
