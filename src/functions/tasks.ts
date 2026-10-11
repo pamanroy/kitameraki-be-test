@@ -1,6 +1,6 @@
-import { app, HttpHandler, HttpMethod, HttpRequest, HttpResponseInit } from '@azure/functions'
+import { HttpRequest, HttpResponseInit } from '@azure/functions'
 import { tasksContainer } from '~/cosmos'
-import { withErrorHandling } from '~/errors'
+import { register } from '~/http'
 import {
   bulkDeleteTasksRequestSchema,
   createTaskRequestSchema,
@@ -15,6 +15,7 @@ import { parseBody, parseParams, parseQuery } from '~/validation'
 export async function GetTask(request: HttpRequest): Promise<HttpResponseInit> {
   const params = parseParams(request, getTaskParamsSchema)
   if ('error' in params) return params.error
+
   const { id, organizationId } = params.data
   const task = await tasksContainer.item(id, organizationId).read()
   if (!task.resource) return { status: 404, jsonBody: { error: 'Task not found' } }
@@ -25,6 +26,7 @@ export async function GetTask(request: HttpRequest): Promise<HttpResponseInit> {
 export async function GetTasks(request: HttpRequest): Promise<HttpResponseInit> {
   const params = parseParams(request, getTasksParamsSchema)
   if ('error' in params) return params.error
+
   const { organizationId } = params.data
   const parsed = parseQuery(request, getTasksQuerySchema)
   if ('error' in parsed) return parsed.error
@@ -57,9 +59,7 @@ export async function GetTasks(request: HttpRequest): Promise<HttpResponseInit> 
         parameters: [...parameters, { name: '@offset', value: (page - 1) * pageSize }, { name: '@limit', value: pageSize }]
       })
       .fetchAll(),
-    tasksContainer.items
-      .query<number>({ query: `SELECT VALUE COUNT(1) FROM c WHERE ${where}`, parameters })
-      .fetchAll()
+    tasksContainer.items.query<number>({ query: `SELECT VALUE COUNT(1) FROM c WHERE ${where}`, parameters }).fetchAll()
   ])
 
   return { jsonBody: { items: items.resources, page, pageSize, total: count.resources[0] }, status: 200 }
@@ -68,6 +68,7 @@ export async function GetTasks(request: HttpRequest): Promise<HttpResponseInit> 
 export async function InsertTask(request: HttpRequest): Promise<HttpResponseInit> {
   const params = parseParams(request, getTasksParamsSchema)
   if ('error' in params) return params.error
+
   const { organizationId } = params.data
   const parsed = await parseBody(request, createTaskRequestSchema)
   if ('error' in parsed) return parsed.error
@@ -80,6 +81,7 @@ export async function InsertTask(request: HttpRequest): Promise<HttpResponseInit
 export async function UpdateTask(request: HttpRequest): Promise<HttpResponseInit> {
   const params = parseParams(request, getTaskParamsSchema)
   if ('error' in params) return params.error
+
   const { id, organizationId } = params.data
   const parsed = await parseBody(request, updateTaskRequestSchema)
   if ('error' in parsed) return parsed.error
@@ -97,6 +99,7 @@ export async function UpdateTask(request: HttpRequest): Promise<HttpResponseInit
 export async function DeleteTask(request: HttpRequest): Promise<HttpResponseInit> {
   const params = parseParams(request, deleteTaskRequestSchema)
   if ('error' in params) return params.error
+
   const { id, organizationId } = params.data
   await tasksContainer.item(id, organizationId).delete()
 
@@ -106,6 +109,7 @@ export async function DeleteTask(request: HttpRequest): Promise<HttpResponseInit
 export async function BulkDeleteTasks(request: HttpRequest): Promise<HttpResponseInit> {
   const params = parseParams(request, getTasksParamsSchema)
   if ('error' in params) return params.error
+
   const { organizationId } = params.data
   const parsed = await parseBody(request, bulkDeleteTasksRequestSchema)
   if ('error' in parsed) return parsed.error
@@ -120,10 +124,6 @@ export async function BulkDeleteTasks(request: HttpRequest): Promise<HttpRespons
 
 const TASKS_ROUTE = 'organizations/{organizationId}/tasks'
 const TASK_ROUTE = `${TASKS_ROUTE}/{id}`
-
-function register(method: HttpMethod, route: string, handler: HttpHandler) {
-  app.http(handler.name, { methods: [method], route, authLevel: 'anonymous', handler: withErrorHandling(handler) })
-}
 
 register('GET', TASK_ROUTE, GetTask)
 register('GET', TASKS_ROUTE, GetTasks)

@@ -111,6 +111,33 @@ Response:
 
 Results are ordered newest first. Pagination uses `OFFSET`/`LIMIT`, which suits page-numbered UIs but costs more on very deep pages. Switching to Cosmos continuation tokens would scale better but drops page numbers and `total`.
 
+### Form settings
+
+The form layout is stored once per organization and applies to all its tasks.
+
+| Method | Route                                         | Description                                     |
+| ------ | --------------------------------------------- | ----------------------------------------------- |
+| GET    | `/organizations/{organizationId}/form-settings` | Get the settings, or the defaults if none saved |
+| PUT    | `/organizations/{organizationId}/form-settings` | Replace the settings                            |
+
+The body of `PUT` and the `rows` of the response are rows of 1 or 2 fields:
+
+```json
+{
+  "rows": [
+    [{ "builtIn": true, "id": "title", "label": "Title" }],
+    [
+      { "builtIn": true, "id": "status", "label": "State" },
+      { "builtIn": false, "id": "<uuid>", "label": "Phone", "type": "text" }
+    ]
+  ]
+}
+```
+
+- Built-in fields (`title`, `description`, `dueDate`, `priority`, `status`, `tags`) must all be present. Only their label and position can change.
+- Custom fields have a uuid `id` and a `type` of `text`, `date`, `datetime` or `email`.
+- `label` is 1 to 50 characters. Field ids must be unique. There is no limit on the number of rows.
+
 ### Errors
 
 Invalid input returns `400` with `{ "error": "...", "issues": [{ "path": "...", "message": "..." }] }`. A missing task returns `404` and a duplicate id returns `409`.
