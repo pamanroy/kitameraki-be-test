@@ -1,4 +1,4 @@
-import { app, HttpHandler, HttpMethod, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
+import { app, HttpHandler, HttpMethod, HttpRequest, HttpResponseInit } from '@azure/functions'
 import { getTasksContainer } from '~/cosmos'
 import { withErrorHandling } from '~/errors'
 import {
@@ -12,9 +12,7 @@ import {
 } from '~/models/task'
 import { parseBody, parseParams, parseQuery } from '~/validation'
 
-export async function GetTask(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  context.log(`Http function processed request for url "${request.url}"`)
-
+export async function GetTask(request: HttpRequest): Promise<HttpResponseInit> {
   const params = parseParams(request, getTaskParamsSchema)
   if ('error' in params) return params.error
   const { id, organizationId } = params.data
@@ -24,9 +22,7 @@ export async function GetTask(request: HttpRequest, context: InvocationContext):
   return { jsonBody: task.resource, status: 200 }
 }
 
-export async function GetTasks(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  context.log(`Http function processed request for url "${request.url}"`)
-
+export async function GetTasks(request: HttpRequest): Promise<HttpResponseInit> {
   const params = parseParams(request, getTasksParamsSchema)
   if ('error' in params) return params.error
   const { organizationId } = params.data
@@ -70,7 +66,7 @@ export async function GetTasks(request: HttpRequest, context: InvocationContext)
   return { jsonBody: { items: items.resources, page, pageSize, total: count.resources[0] }, status: 200 }
 }
 
-export async function InsertTask(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+export async function InsertTask(request: HttpRequest): Promise<HttpResponseInit> {
   const params = parseParams(request, getTasksParamsSchema)
   if ('error' in params) return params.error
   const { organizationId } = params.data
@@ -82,7 +78,7 @@ export async function InsertTask(request: HttpRequest, context: InvocationContex
   return { jsonBody: createdTask.resource, status: 201 }
 }
 
-export async function UpdateTask(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+export async function UpdateTask(request: HttpRequest): Promise<HttpResponseInit> {
   const params = parseParams(request, getTaskParamsSchema)
   if ('error' in params) return params.error
   const { id, organizationId } = params.data
@@ -99,9 +95,7 @@ export async function UpdateTask(request: HttpRequest, context: InvocationContex
   return { jsonBody: updatedTask.resource, status: 200 }
 }
 
-export async function DeleteTask(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  context.log(`Http function processed request for url "${request.url}"`)
-
+export async function DeleteTask(request: HttpRequest): Promise<HttpResponseInit> {
   const params = parseParams(request, deleteTaskRequestSchema)
   if ('error' in params) return params.error
   const { id, organizationId } = params.data
@@ -110,8 +104,7 @@ export async function DeleteTask(request: HttpRequest, context: InvocationContex
   return { status: 204 }
 }
 
-export async function BulkDeleteTasks(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  context.log(`Http function processed request for url "${request.url}"`)
+export async function BulkDeleteTasks(request: HttpRequest): Promise<HttpResponseInit> {
   const params = parseParams(request, getTasksParamsSchema)
   if ('error' in params) return params.error
   const { organizationId } = params.data

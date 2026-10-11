@@ -10,6 +10,6 @@
       "~/*": ["src/*"]
     },
     "sourceMap": true,
-    "strict": false
+    "strict": true
   }
 }
