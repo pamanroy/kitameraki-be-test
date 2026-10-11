@@ -16,11 +16,11 @@ async function call(url: string, init?: { method?: string; body?: unknown }) {
   return { status: response.status, body: text ? JSON.parse(text) : undefined }
 }
 
-async function createTask(overrides: Partial<CreateTaskRequest> = {}): Promise<CreateTaskRequest> {
-  const task: CreateTaskRequest = { id: randomUUID(), title: 'Task', status: 'todo', ...overrides }
+async function createTask(overrides: Partial<CreateTaskRequest> = {}): Promise<CreateTaskRequest & { id: string }> {
+  const task: CreateTaskRequest = { title: 'Task', status: 'todo', ...overrides }
   const response = await call(tasksUrl(), { method: 'POST', body: task })
   expect(response.status).toBe(201)
-  return task
+  return { ...task, id: response.body.id }
 }
 
 async function list(query = '') {
@@ -53,25 +53,28 @@ describe('create and read', () => {
     expect(response.body).toMatchObject({ ...task, organizationId })
   })
 
-  it('returns 409 for a duplicate id', async () => {
-    const task = await createTask()
-    const response = await call(tasksUrl(), { method: 'POST', body: task })
-    expect(response.status).toBe(409)
+  it('generates a uuid id and ignores an id sent in the body', async () => {
+    const sent = randomUUID()
+    const response = await call(tasksUrl(), { method: 'POST', body: { id: sent, title: 'Own id', status: 'todo' } })
+    expect(response.status).toBe(201)
+    expect(response.body.id).toMatch(/^[0-9a-f-]{36}$/)
+    expect(response.body.id).not.toBe(sent)
   })
 
   it('takes the organizationId from the route and ignores unknown body fields', async () => {
-    const task = { id: randomUUID(), title: 'Extra fields', status: 'todo', organizationId: randomUUID(), unknown: true }
-    expect((await call(tasksUrl(), { method: 'POST', body: task })).status).toBe(201)
+    const task = { title: 'Extra fields', status: 'todo', organizationId: randomUUID(), unknown: true }
+    const created = await call(tasksUrl(), { method: 'POST', body: task })
+    expect(created.status).toBe(201)
 
-    const response = await call(`${tasksUrl()}/${task.id}`)
-    expect(response.body).toMatchObject({ id: task.id, organizationId })
+    const response = await call(`${tasksUrl()}/${created.body.id}`)
+    expect(response.body).toMatchObject({ organizationId })
     expect(response.body).not.toHaveProperty('unknown')
   })
 
   it('returns 400 with field issues for an invalid body', async () => {
-    const response = await call(tasksUrl(), { method: 'POST', body: { id: 'nope', title: 'x', status: 'done' } })
+    const response = await call(tasksUrl(), { method: 'POST', body: { title: 'x', status: 'done' } })
     expect(response.status).toBe(400)
-    expect(response.body.issues.map((issue: { path: string }) => issue.path).sort()).toEqual(['id', 'status'])
+    expect(response.body.issues.map((issue: { path: string }) => issue.path).sort()).toEqual(['status'])
   })
 
   it('returns 400 for a body that is not JSON', async () => {
@@ -161,7 +164,7 @@ describe('listing', () => {
   }
 
   beforeAll(async () => {
-    const tasks: Omit<CreateTaskRequest, 'id'>[] = [
+    const tasks: CreateTaskRequest[] = [
       { title: 'Fix Login bug', status: 'todo', priority: 'high', tags: ['bug', 'login'], description: 'users cannot sign in' },
       { title: 'Write docs', status: 'todo', priority: 'low', tags: ['docs'] },
       { title: 'Ship release', status: 'completed', priority: 'high', tags: ['bug'] },
@@ -169,9 +172,9 @@ describe('listing', () => {
       { title: 'No tags or priority', status: 'todo' }
     ]
     for (const task of tasks) {
-      const id = randomUUID()
-      created.push(id)
-      expect((await call(listUrl().split('?')[0], { method: 'POST', body: { id, ...task } })).status).toBe(201)
+      const response = await call(listUrl().split('?')[0], { method: 'POST', body: task })
+      expect(response.status).toBe(201)
+      created.push(response.body.id)
     }
   })
 

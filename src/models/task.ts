@@ -31,7 +31,7 @@ export const getTasksQuerySchema = z.object({
 })
 export type GetTasksQuery = z.infer<typeof getTasksQuerySchema>
 
-export const createTaskRequestSchema = taskSchema.omit({ organizationId: true })
+export const createTaskRequestSchema = taskSchema.omit({ id: true, organizationId: true })
 export type CreateTaskRequest = z.infer<typeof createTaskRequestSchema>
 
 export const updateTaskRequestSchema = taskSchema

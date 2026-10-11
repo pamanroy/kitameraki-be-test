@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { HttpRequest, HttpResponseInit } from '@azure/functions'
 import { tasksContainer } from '~/cosmos'
 import { validateCustomFields } from '~/customFields'
@@ -81,7 +82,7 @@ export async function InsertTask(request: HttpRequest): Promise<HttpResponseInit
     task = { ...task, customFields: customFields.data }
   }
 
-  const createdTask = await tasksContainer.items.create({ ...task, organizationId })
+  const createdTask = await tasksContainer.items.create({ ...task, id: randomUUID(), organizationId })
 
   return { jsonBody: createdTask.resource, status: 201 }
 }
