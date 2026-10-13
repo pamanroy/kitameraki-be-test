@@ -21,21 +21,13 @@ winget install Microsoft.Azure.FunctionsCoreTools
    - database `TaskApp`
    - container `Tasks` with partition key `/organizationId`
    - container `FormSettings` with partition key `/organizationId`
-3. Create `local.settings.json` in the project root. It is gitignored.
+3. Copy `local.settings.example.json` to `local.settings.json` in the project root. It is gitignored.
 
-   ```json
-   {
-     "IsEncrypted": false,
-     "Values": {
-       "AzureWebJobsStorage": "UseDevelopmentStorage=true",
-       "FUNCTIONS_WORKER_RUNTIME": "node",
-       "NODE_TLS_REJECT_UNAUTHORIZED": "0",
-       "COSMOS_CONNECTION_STRING": "AccountEndpoint=https://localhost:8081/;AccountKey=<emulator key>"
-     }
-   }
+   ```powershell
+   Copy-Item local.settings.example.json local.settings.json
    ```
 
-   `<emulator key>` is the primary key shown on the emulator's start page and in its Data Explorer. `NODE_TLS_REJECT_UNAUTHORIZED=0` lets Node accept the emulator's self-signed certificate, so use it only locally.
+   Then replace `<emulator key>` with the primary key shown on the emulator's start page and in its Data Explorer. `NODE_TLS_REJECT_UNAUTHORIZED=0` lets Node accept the emulator's self-signed certificate, so use it only locally.
 
 4. Install and start:
 
@@ -56,6 +48,7 @@ For development, run `npm run watch` in a second terminal. It recompiles on chan
 | `npm run build` | Compile with `tsc` and resolve `~` path aliases |
 | `npm run watch` | Rebuild on change                               |
 | `npm run clean` | Remove `dist`                                   |
+| `npm run openapi` | Regenerate `openapi.json` from the zod schemas |
 | `npm test`      | Run the integration tests (see below)           |
 
 ## Tests
@@ -77,13 +70,15 @@ If the API is not reachable, the run stops immediately with a message saying so.
 
 ## API
 
+The full spec is in [openapi.json](openapi.json), generated from the zod schemas with `npm run openapi`.
+
 Base path: `/api/organizations/{organizationId}/tasks`. `organizationId` and `id` must be UUIDs.
 
 | Method | Route         | Description                      |
 | ------ | ------------- | -------------------------------- |
 | GET    | `/`           | List tasks (paginated)           |
 | GET    | `/{id}`       | Get one task                     |
-| POST   | `/`           | Create a task, the id is generated |
+| POST   | `/`           | Create a task (the id is generated) |
 | PATCH  | `/{id}`       | Update fields of a task          |
 | DELETE | `/{id}`       | Delete a task                    |
 | DELETE | `/`           | Bulk delete, body is an id array |
@@ -156,3 +151,14 @@ The body of `PUT` and the `rows` of the response are rows of 1 or 2 fields:
 ### Errors
 
 Invalid input returns `400` with `{ "error": "...", "issues": [{ "path": "...", "message": "..." }] }`. A missing task returns `404`.
+
+## Nice to have
+
+- Add authentication. Endpoints are anonymous now and trust the `organizationId` in the URL. JWT sessions, plus a check that the token's organization matches the URL, would close that.
+- Add unit tests for validation and query building. They would run without the API and the Cosmos emulator.
+- Add rate limiting, and restrict CORS to known origins when the API is deployed.
+- Use optimistic concurrency with Cosmos ETags, so two people editing the same task or the form settings do not overwrite each other.
+- Load the Cosmos connection string from Key Vault or a managed identity instead of a settings file.
+- Add structured logging with a request id, and Application Insights for monitoring.
+- Add a CI pipeline that builds, lints and runs the tests on every push.
+- Switch the task list to Cosmos continuation tokens if the data grows enough for deep `OFFSET` pages to get slow.

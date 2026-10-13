@@ -13,6 +13,7 @@ import {
   getTasksQuerySchema,
   updateTaskRequestSchema
 } from '~/models/task'
+import { TASK_ROUTE, TASKS_ROUTE } from '~/routes'
 import { parseBody, parseParams, parseQuery } from '~/validation'
 
 export async function GetTask(request: HttpRequest): Promise<HttpResponseInit> {
@@ -144,9 +145,6 @@ export async function BulkDeleteTasks(request: HttpRequest): Promise<HttpRespons
 
   return { status: 204 }
 }
-
-const TASKS_ROUTE = 'organizations/{organizationId}/tasks'
-const TASK_ROUTE = `${TASKS_ROUTE}/{id}`
 
 register('GET', TASK_ROUTE, GetTask)
 register('GET', TASKS_ROUTE, GetTasks)

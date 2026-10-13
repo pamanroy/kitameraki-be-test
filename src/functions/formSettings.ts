@@ -3,6 +3,7 @@ import { formSettingsContainer } from '~/cosmos'
 import { getFormSettings } from '~/formSettings'
 import { register } from '~/http'
 import { getFormSettingsParamsSchema, updateFormSettingsRequestSchema } from '~/models/formSettings'
+import { FORM_SETTINGS_ROUTE } from '~/routes'
 import { parseBody, parseParams } from '~/validation'
 
 export async function GetFormSettings(request: HttpRequest): Promise<HttpResponseInit> {
@@ -41,8 +42,6 @@ export async function DeleteFormSettings(request: HttpRequest): Promise<HttpResp
 
   return { status: 204 }
 }
-
-const FORM_SETTINGS_ROUTE = 'organizations/{organizationId}/form-settings'
 
 register('GET', FORM_SETTINGS_ROUTE, GetFormSettings)
 register('PUT', FORM_SETTINGS_ROUTE, UpdateFormSettings)
