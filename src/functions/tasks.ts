@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { PatchOperation } from '@azure/cosmos'
 import { HttpRequest, HttpResponseInit } from '@azure/functions'
 import { tasksContainer } from '~/cosmos'
 import { validateCustomFields } from '~/customFields'
@@ -102,12 +103,18 @@ export async function UpdateTask(request: HttpRequest): Promise<HttpResponseInit
     changes = { ...changes, customFields: customFields.data }
   }
 
-  const patchRequests = Object.entries(changes).map(([key, value]) => ({
-    op: 'set' as const,
-    path: `/${key}`,
-    value
-  }))
-  const updatedTask = await tasksContainer.item(id, organizationId).patch(patchRequests)
+  const item = tasksContainer.item(id, organizationId)
+  const { resource: existing } = await item.read()
+  if (!existing) return { status: 404, jsonBody: { error: 'Task not found' } }
+
+  // null clears a field; Cosmos rejects removing a path that does not exist, so skip those
+  const patchRequests = Object.entries(changes).flatMap(([key, value]): PatchOperation[] => {
+    if (value !== null) return [{ op: 'set', path: `/${key}`, value }]
+    return key in existing ? [{ op: 'remove', path: `/${key}` }] : []
+  })
+  if (patchRequests.length === 0) return { jsonBody: existing, status: 200 }
+
+  const updatedTask = await item.patch(patchRequests)
 
   return { jsonBody: updatedTask.resource, status: 200 }
 }

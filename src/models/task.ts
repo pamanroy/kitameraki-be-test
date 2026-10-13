@@ -41,6 +41,11 @@ export type CreateTaskRequest = z.infer<typeof createTaskRequestSchema>
 export const updateTaskRequestSchema = taskSchema
   .omit({ id: true, organizationId: true })
   .partial()
+  // null clears an optional value, since a missing key in a PATCH body means "leave unchanged"
+  .extend({
+    dueDate: taskSchema.shape.dueDate.nullable(),
+    priority: taskSchema.shape.priority.nullable()
+  })
   // add custom validation rule
   .refine(body => Object.keys(body).length > 0, { message: 'At least one field must be provided' })
 export type UpdateTaskRequest = z.infer<typeof updateTaskRequestSchema>

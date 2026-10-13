@@ -106,6 +106,29 @@ describe('update', () => {
     expect(response.body).toMatchObject({ id: task.id, title: 'Keep me', priority: 'low', status: 'completed' })
   })
 
+  it('clears dueDate and priority when they are null', async () => {
+    const task = await createTask({ title: 'Clear me', priority: 'high', dueDate: '2030-01-01T00:00:00.000Z' })
+
+    const response = await call(`${tasksUrl()}/${task.id}`, { method: 'PATCH', body: { dueDate: null, priority: null } })
+    expect(response.status).toBe(200)
+    expect(response.body).toMatchObject({ id: task.id, title: 'Clear me' })
+    expect(response.body).not.toHaveProperty('dueDate')
+    expect(response.body).not.toHaveProperty('priority')
+  })
+
+  it('accepts null for a value the task does not have', async () => {
+    const task = await createTask({ title: 'Nothing to clear' })
+
+    const response = await call(`${tasksUrl()}/${task.id}`, { method: 'PATCH', body: { priority: null, title: 'Renamed' } })
+    expect(response.status).toBe(200)
+    expect(response.body).toMatchObject({ id: task.id, title: 'Renamed' })
+  })
+
+  it('returns 400 for null on a required field', async () => {
+    const task = await createTask()
+    expect((await call(`${tasksUrl()}/${task.id}`, { method: 'PATCH', body: { title: null } })).status).toBe(400)
+  })
+
   it('returns 400 for an empty body', async () => {
     const task = await createTask()
     expect((await call(`${tasksUrl()}/${task.id}`, { method: 'PATCH', body: {} })).status).toBe(400)
